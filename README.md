@@ -1,6 +1,6 @@
 # weather-dashboard
 ## What it Looks Like
-![Weather Dashboard](weather_dashboard.png)
+![Weather Dashboard](weather_dashboard.PNG)
 
 ## Core Functionality
 - Search weather by city
