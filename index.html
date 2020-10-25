@@ -16,22 +16,25 @@
     </div>
     <div id="main" class="container">
         <div class="row">
-            <div class="col-12 col-sm-3">
+            <div class="col-12 col-sm-4">
                 <input id="city" placeholder="Enter City">
-                <button id="getWeather">Get Weather</button>
+                <a class="btn btn-primary" id="getWeather">Get Weather</a>
+                <h5>Search History</h5>
+                <div id="pastSearches"></div>
             </div>
-            <div class="col-12 col-sm-9">
+            <div class="col-12 col-sm-8">
                 <div id="today" class="row">
-                    <div class="card">
+                    <div id="today-card-main" class="card shadow">
                         <div id="today-card" class="card-body">
                           Search to see the magic.
                         </div>
                       </div>
                 </div>
-                <div id="forecast" class="row">
-                    
-                </div>
             </div>
+        </div>
+        <div style="display:none;" id="unhide" class="row justify-content-center"><h3>Rest of the Week Forecast</h3></div>
+        <div id="forecast" class="row">
+
         </div>
     </div>
 
@@ -41,30 +44,82 @@
     <script src="https://cdn.jsdelivr.net/npm/places.js@1.19.0/dist/cdn/placesAutocompleteDataset.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ==" crossorigin="anonymous"></script>
     <script>
+        // Since we are using lat/long, use current position as default instead of last search
+        navigator.geolocation.getCurrentPosition(function(position) {
+            let lat = position.coords.latitude;
+            let long = position.coords.longitude;
+
+            // latText.innerText = lat.toFixed(2);
+            // longText.innerText = long.toFixed(2);
+            console.log(lat);
+            console.log(long);
+            city = 'Your Current Location';
+            cityLat = lat;
+            cityLng = long;
+            displayWeather();
+        });
+
         // Initialize variables for later usage
         var cityLat;
         var cityLng;
-        var searches = localStorage.getItem("cities");
+        var searches = localStorage.getItem("searches");
+
+        // If the array isn't there, create it
+        if (!searches) {
+            searches = [];
+        } else {
+            searches = JSON.parse(searches);
+            var max = searches.length - 1;
+            for (var z=max; z > (max - 7); z--){
+                var searchItem = $('<p>');
+                searchItem.text(searches[z].city).addClass('searchItem');
+                searchItem.attr('data-lat', searches[z].latLng.lat);
+                searchItem.attr('data-lng', searches[z].latLng.lng);
+                $('#pastSearches').append(searchItem);
+            }
+        }
+
+        // Initialize vars
         var city= '';
         var latLng = {};
 
+
+        // on-click fxn to call for weather
         $('#getWeather').on('click', function(e) {
             e.preventDefault();
-            
-            // If the array isn't there, create it
-            if (!searches) {
-                searches = [];
-            } else {
-                searches = JSON.parse(searches);
-            }
 
             // Store the search in local storage
             city = $('#city').val();
             latLng = {lat: cityLat, lng: cityLng};
-            searches.push({ city: city, latLng: latLng});
-            localStorage.setItem("searches", JSON.stringify(searches));
+            var checker = 0;
+
+            for (var i=0; i <searches.length; i++) {
+                if (city === searches[i].city) {
+                    checker = 1;
+                }
+            }
+
+            if (checker === 0) {
+                searches.push({ city: city, latLng: latLng});
+                localStorage.setItem("searches", JSON.stringify(searches));
+            }
+
+            // call display function
+            displayWeather();
+        })
+
+        // Click listener for the search history
+
+        $('.searchItem').on('click', function(e) {
+            city = $(this).text();
+            cityLat = $(this).attr('data-lat');
+            cityLng = $(this).attr('data-lng');
+            displayWeather();
+        })
 
             // Make the ajax call to get the weather data
+           function displayWeather(){
+
             $.ajax({
                 url: 'https://api.openweathermap.org/data/2.5/onecall?lat='+cityLat+'&lon='+cityLng+'&appid=c406a5e75ec8149f72f933aa5f754ef9&units=imperial',
                 method: 'GET'
@@ -77,18 +132,53 @@
                 todayEl.empty();
 
                 var todayTitle = $('<h2>').text(city);
-                var todayDate = $('<h4>').text(moment().format("dddd, MMMM Do YYYY"));
-                var currentTemp = $('<p>').text('Current Temperature: '+today.temp);
+                var todayDate = $('<h4>').text(moment().format("dddd, MMMM Do YYYY h:mm a"));
+                var currentTemp = $('<p>').text('Current Temperature: '+today.temp+' Degrees F');
                 var currentWeather = $('<p>').text("What it's like out: " +today.weather[0].description);
+                var currSpan = $('<span>')
                 var currentIcon = $('<img>').attr('src', "http://openweathermap.org/img/wn/" + today.weather[0].icon + ".png");
-                var currentUVI = $('<p>').text('UVI: '+today.uvi);
-                var currentHum = $('<p>').text('Humidity: '+today.humidity);
-                todayEl.append(todayTitle, '<br>', todayDate, '<br>', currentTemp, '<br>', currentIcon, currentWeather, '<br>', currentUVI, '<br>', currentHum);
+                var uviSpan = $('<span>').text('UVI: '+today.uvi);
+                //var currentUVI = $('<p>').text('UVI: '+today.uvi);
+                var currentHum = $('<p>').text('Humidity: '+today.humidity+'%');
+                var currWind = $('<p>').text('Wind: '+today.wind_speed+' MPH')
+                todayEl.append(todayTitle, todayDate, currSpan, currentTemp, currentWeather, uviSpan, currentHum, currWind);
+                currSpan.append(currentIcon);
+                //uviSpan.append(currentUVI);
 
+                if (parseInt(uviSpan) < 3) {
+                    uviSpan.attr('style', 'background-color: green');
+                }
+                else if (parseInt(uviSpan) > 7) {
+                    uviSpan.attr('style', 'background-color: red');
+                }
+                else {
+                    uviSpan.attr('style', 'background-color: yellow');
+                }
+                
+                // Unhide the header
+                $('#unhide').attr('style', 'display: flex');
+                // Create the 5-day forecast
+                var f = response.daily;
 
+                for (var x=1; x < 7; x++) {
+
+                    var fDate = $('<p>').text(moment().add(x,'days').format('dddd, MMMM Do'));
+                    var fIcon = $('<img>').attr('src', "http://openweathermap.org/img/wn/" + f[x].weather[0].icon + ".png");
+                    var fDesc = $('<p>').text('Weather: '+f[x].weather[0].description);
+                    var fTemps = $('<p>').text('Low: '+f[x].temp.min+' Max: '+f[x].temp.max);
+                    var fWind = $('<p>').text('Wind: '+f[x].wind_speed+' MPH');
+                    
+                    var col = $('<div>').addClass('col-6');
+                    var card = $('<div>').addClass('card shadow');
+                    var cardBody = $('<div>').addClass('card-body lb');                    
+                    cardBody.append(fDate, fIcon, fDesc, fTemps, fWind);
+                    card.append(cardBody);
+                    $(col).append(card);
+                    $('#forecast').append(col);
+
+                }
             })
-
-        })
+            }
         
     </script>
     <script>

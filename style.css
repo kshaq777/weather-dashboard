@@ -1,3 +1,7 @@
+img {
+    width: 75px;
+}
+
 #navbar {
     background-color: navy;
 }
@@ -8,4 +12,28 @@
 
 #main {
     margin: 4rem 2rem;
+}
+
+#getWeather {
+    margin: 1.5rem 0rem;
+    background-color: green;
+    border-color: green;
+}
+
+#getWeather:hover {
+    margin-top: 1.5rem;
+    background-color: lightgreen;
+    border-color: lightgreen;
+}
+
+#today-card-main {
+    width: 100%;
+}
+
+#today-card {
+    line-height: 1.5;
+}
+
+.lb {
+    background-color: lightblue;
 }
